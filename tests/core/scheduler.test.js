@@ -140,4 +140,19 @@ describe('generateSchedule', () => {
     expect(result.uncovered).toEqual([]);
     assertHardRules(result, config);
   });
+
+  it('schedules 100 people and 5 shifts at full capacity in under a second', () => {
+    const people = Array.from({ length: 100 }, (_, i) => `Persona ${i + 1}`);
+    const shift = (id, start, end, required) => ({ id, name: id, code: id.toUpperCase(), start, end, requiredWeekday: required, requiredWeekend: required });
+    const config = dayNight({
+      month: 10,
+      shifts: [shift('a', '06:00', '13:00', 16), shift('b', '07:00', '16:00', 14), shift('c', '13:00', '21:00', 15), shift('d', '16:00', '22:00', 17), shift('e', '21:00', '06:00', 14)],
+    });
+    const started = performance.now();
+    const result = generateSchedule({ people, config });
+    const elapsed = performance.now() - started;
+    expect(result.uncovered).toEqual([]);
+    assertHardRules(result, config);
+    expect(elapsed).toBeLessThan(1500);
+  });
 });

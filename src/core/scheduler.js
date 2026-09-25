@@ -5,7 +5,7 @@ import { buildSlots, shiftMinutes } from './slots.js';
 import { addAssignment, createState, deviation, removeAssignment } from './state.js';
 import { computeTargets, groupExceptions } from './targets.js';
 
-const MAX_ITERATIONS = 2000;
+const MAX_PASSES = 2000;
 const EPS = 1e-9;
 
 export function defaultSeed(config) {
@@ -28,11 +28,11 @@ export function generateSchedule({ people, exceptions = [], config, seed = defau
     }
   }
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    if (tryFill(state, slots, rng)) continue;
-    if (tryTransfer(state, slotById)) continue;
-    if (trySwap(state, slotById)) continue;
-    break;
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    const filled = fillPass(state, slots, rng);
+    const transferred = transferPass(state, slotById);
+    const swapped = swapPass(state, slotById);
+    if (!filled && !transferred && !swapped) break;
   }
 
   return buildResult(state, slots, seed);
@@ -52,62 +52,90 @@ function pickCandidate(state, slot, rng) {
   return ranked[0]?.person ?? null;
 }
 
-function tryFill(state, slots, rng) {
+function fillPass(state, slots, rng) {
+  let changed = false;
   for (const slot of slots) {
-    if ((state.seats[slot.id]?.length ?? 0) >= slot.required) continue;
-    const best = pickCandidate(state, slot, rng);
-    if (best) {
+    while ((state.seats[slot.id]?.length ?? 0) < slot.required) {
+      const best = pickCandidate(state, slot, rng);
+      if (!best) break;
       addAssignment(state, best, slot);
-      return true;
+      changed = true;
     }
   }
-  return false;
+  return changed;
 }
 
 const hoursDelta = (h, donorDev, receiverDev) => 2 * h * (receiverDev - donorDev) + 2 * h * h;
 const improves = (hd, sd) => hd < -EPS || (Math.abs(hd) <= EPS && sd < 0);
 
-function tryTransfer(state, slotById) {
+function groupByShift(list) {
+  const groups = new Map();
+  for (const a of list) {
+    if (!groups.has(a.shiftId)) groups.set(a.shiftId, []);
+    groups.get(a.shiftId).push(a);
+  }
+  return [...groups.values()];
+}
+
+function transferPass(state, slotById) {
+  let changed = false;
   const order = [...state.people].sort((a, b) => deviation(state, b) - deviation(state, a));
   for (const donor of order) {
-    const donorDev = deviation(state, donor);
     for (let r = order.length - 1; r >= 0; r--) {
       const receiver = order[r];
       if (receiver === donor) continue;
-      const receiverDev = deviation(state, receiver);
-      for (const a of state.byPerson[donor]) {
-        const counts = state.shiftCounts[a.shiftId];
-        const hd = hoursDelta(a.minutes / 60, donorDev, receiverDev);
-        const sd = 2 * (counts[receiver] - counts[donor]) + 2;
-        if (!improves(hd, sd)) continue;
-        const slot = slotById.get(a.slotId);
-        if (!canAssign(state, receiver, slot)) continue;
-        removeAssignment(state, donor, slot);
-        addAssignment(state, receiver, slot);
-        return true;
+      for (const group of groupByShift(state.byPerson[donor])) {
+        const counts = state.shiftCounts[group[0].shiftId];
+        for (const a of group) {
+          const hd = hoursDelta(a.minutes / 60, deviation(state, donor), deviation(state, receiver));
+          const sd = 2 * (counts[receiver] - counts[donor]) + 2;
+          if (!improves(hd, sd)) break;
+          const slot = slotById.get(a.slotId);
+          if (!canAssign(state, receiver, slot)) continue;
+          removeAssignment(state, donor, slot);
+          addAssignment(state, receiver, slot);
+          changed = true;
+        }
       }
     }
   }
-  return false;
+  return changed;
 }
 
-function trySwap(state, slotById) {
+function swapPass(state, slotById) {
+  let changed = false;
   const { people } = state;
+  const groups = new Map(people.map((p) => [p, groupByShift(state.byPerson[p])]));
   for (let i = 0; i < people.length; i++) {
     for (let j = i + 1; j < people.length; j++) {
       const A = people[i];
       const B = people[j];
-      const devA = deviation(state, A);
-      const devB = deviation(state, B);
-      for (const a of state.byPerson[A]) {
-        for (const b of state.byPerson[B]) {
-          if (a.shiftId === b.shiftId) continue;
-          const hd = hoursDelta((a.minutes - b.minutes) / 60, devA, devB);
-          const cs = state.shiftCounts[a.shiftId];
-          const ct = state.shiftCounts[b.shiftId];
-          const sd = 2 * (cs[B] - cs[A]) + 2 + 2 * (ct[A] - ct[B]) + 2;
-          if (!improves(hd, sd)) continue;
-          const sa = slotById.get(a.slotId);
+      if (trySwapPair(state, slotById, A, B, groups.get(A), groups.get(B))) {
+        groups.set(A, groupByShift(state.byPerson[A]));
+        groups.set(B, groupByShift(state.byPerson[B]));
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
+function trySwapPair(state, slotById, A, B, groupsA, groupsB) {
+  const devA = deviation(state, A);
+  const devB = deviation(state, B);
+  for (const ga of groupsA) {
+    for (const gb of groupsB) {
+      const s = ga[0].shiftId;
+      const t = gb[0].shiftId;
+      if (s === t) continue;
+      const hd = hoursDelta((ga[0].minutes - gb[0].minutes) / 60, devA, devB);
+      const cs = state.shiftCounts[s];
+      const ct = state.shiftCounts[t];
+      const sd = 2 * (cs[B] - cs[A]) + 2 + 2 * (ct[A] - ct[B]) + 2;
+      if (!improves(hd, sd)) continue;
+      for (const a of ga) {
+        const sa = slotById.get(a.slotId);
+        for (const b of gb) {
           const sb = slotById.get(b.slotId);
           if (!canAssign(state, A, sb, sa.id) || !canAssign(state, B, sa, sb.id)) continue;
           removeAssignment(state, A, sa);
