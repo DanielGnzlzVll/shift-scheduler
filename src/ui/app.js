@@ -81,29 +81,12 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     notice.hidden = !text;
   };
 
-  let seedEdited = false;
-  const seedInput = el('input', {
-    type: 'number',
-    name: 'seed',
-    min: 0,
-    step: 1,
-    value: defaultSeed(state.config),
-    onInput: () => (seedEdited = true),
-  });
-  const readSeed = () => {
-    const seed = Number(seedInput.value);
-    return seedInput.value !== '' && Number.isInteger(seed) && seed >= 0 ? seed : defaultSeed(state.config);
-  };
-
   const configFormBox = el('div');
   const configSection = el('section', { className: 'card' }, configFormBox);
   const configForm = renderConfigForm(configFormBox, state.config, (config, validation) => {
     state.config = config;
     state.configValid = validation.valid;
-    if (validation.valid) {
-      saveConfig(config, storage);
-      if (!seedEdited) seedInput.value = defaultSeed(config);
-    }
+    if (validation.valid) saveConfig(config, storage);
     refreshButtons();
   });
   const importInput = el('input', {
@@ -174,7 +157,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     exceptionsStatus,
   );
 
-  const generateButton = el('button', { type: 'button', className: 'primary', onClick: () => controller.generate(readSeed()) }, 'Generar');
+  const generateButton = el('button', { type: 'button', className: 'primary', onClick: () => controller.generate(defaultSeed(state.config)) }, 'Generar');
   const regenerateButton = el('button', { type: 'button', className: 'ghost', onClick: () => controller.generate(randomSeed()) }, 'Regenerar');
   const downloadButton = el(
     'button',
@@ -190,8 +173,6 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     },
     'Descargar Excel',
   );
-  const seedLabel = el('span', { className: 'seed' });
-  const seedField = el('label', { className: 'field' }, el('span', {}, 'Semilla'), seedInput);
   const warningsBox = el('div', { className: 'result-block' });
   const gridBox = el('div', { className: 'result-block' });
   const reportBox = el('div', { className: 'result-block' });
@@ -199,7 +180,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     'section',
     { className: 'card' },
     el('h2', {}, '4. Resultado'),
-    el('div', { className: 'tools result-tools' }, seedField, generateButton, regenerateButton, downloadButton, seedLabel),
+    el('div', { className: 'tools result-tools' }, generateButton, regenerateButton, downloadButton),
     warningsBox,
     gridBox,
     reportBox,
@@ -278,8 +259,6 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
       const result = generateSchedule({ ...context, seed });
       state.result = result;
       state.context = context;
-      seedInput.value = seed;
-      seedLabel.textContent = `Semilla: ${seed}`;
       renderWarnings(warningsBox, [...state.peopleWarnings, ...state.exceptionErrors, ...result.warnings]);
       renderScheduleGrid(gridBox, { result, config: context.config, people: context.people, exceptions: context.exceptions });
       renderReportTable(reportBox, result.report, context.config.shifts);

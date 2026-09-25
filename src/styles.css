@@ -202,24 +202,6 @@ body {
   background: rgba(0, 0, 0, 0.25);
 }
 
-.result-tools .field input {
-  width: 9rem;
-}
-
-.seed {
-  margin-left: auto;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 0.8rem;
-}
-
-.seed:empty {
-  display: none;
-}
-
 button,
 input::file-selector-button {
   font: inherit;
@@ -839,10 +821,6 @@ thead th.weekend {
     display: block;
     max-width: 100%;
     overflow-x: auto;
-  }
-
-  .seed {
-    margin-left: 0;
   }
 }
 

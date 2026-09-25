@@ -64,7 +64,6 @@ describe('renderApp', () => {
 
     const result = app.generate(7);
     expect(result.seed).toBe(7);
-    expect(root.textContent).toContain('Semilla: 7');
     expect(root.querySelectorAll('table.schedule tbody tr')).toHaveLength(5 + 2);
     expect(root.querySelectorAll('table.report tbody tr')).toHaveLength(5);
     expect(button(root, 'Descargar Excel').disabled).toBe(false);
@@ -163,48 +162,33 @@ describe('renderApp', () => {
 
     const scheduleHtml = (root) => root.querySelector('table.schedule').innerHTML;
 
-    it('generates with the seed in the input and reproduces results', () => {
+    it('keeps the seed out of the UI', () => {
+      const root = document.createElement('div');
+      const app = renderApp(root, { storage: memoryStorage() });
+      app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
+      button(root, 'Generar').click();
+      expect(root.querySelector('input[name=seed]')).toBeNull();
+      expect(root.textContent).not.toContain('Semilla');
+    });
+
+    it('generates reproducibly with the month seed and regenerates with a random one', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const root = document.createElement('div');
       const app = renderApp(root, { storage: memoryStorage() });
       app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
-      const seedInput = root.querySelector('input[name=seed]');
-      expect(seedInput.closest('label').textContent).toContain('Semilla');
+      const year = Number(root.querySelector('input[name=year]').value);
+      const month = Number(root.querySelector('select[name=month]').value);
+      const expected = app.generate(defaultSeed({ year, month }));
 
-      seedInput.value = '42';
-      seedInput.dispatchEvent(new Event('input'));
       button(root, 'Generar').click();
-      expect(root.textContent).toContain('Semilla: 42');
       const first = scheduleHtml(root);
+      expect(app.generate(defaultSeed({ year, month })).assignments).toEqual(expected.assignments);
 
       button(root, 'Regenerar').click();
-      expect(seedInput.value).toBe(String(2 ** 30));
-      expect(root.textContent).toContain(`Semilla: ${2 ** 30}`);
       expect(scheduleHtml(root)).not.toBe(first);
 
-      seedInput.value = '42';
-      seedInput.dispatchEvent(new Event('input'));
       button(root, 'Generar').click();
       expect(scheduleHtml(root)).toBe(first);
-    });
-
-    it('follows the default seed for the month until edited', () => {
-      const root = document.createElement('div');
-      renderApp(root, { storage: memoryStorage() });
-      const seedInput = root.querySelector('input[name=seed]');
-      const year = Number(root.querySelector('input[name=year]').value);
-      const month = root.querySelector('select[name=month]');
-      expect(seedInput.value).toBe(String(defaultSeed({ year, month: Number(month.value) })));
-
-      month.value = month.value === '11' ? '12' : '11';
-      month.dispatchEvent(new Event('change'));
-      expect(seedInput.value).toBe(String(defaultSeed({ year, month: Number(month.value) })));
-
-      seedInput.value = '7';
-      seedInput.dispatchEvent(new Event('input'));
-      month.value = '3';
-      month.dispatchEvent(new Event('change'));
-      expect(seedInput.value).toBe('7');
     });
   });
 });
