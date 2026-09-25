@@ -2,6 +2,7 @@ import { validateConfig } from '../core/config.js';
 import { APP_TITLE } from '../core/index.js';
 import { randomSeed } from '../core/random.js';
 import { defaultSeed, generateSchedule } from '../core/scheduler.js';
+import { formatDateTime } from '../core/time.js';
 import { buildScheduleWorkbook, scheduleFileName } from '../io/exportSchedule.js';
 import { readExceptions } from '../io/readExceptions.js';
 import { readPeople } from '../io/readPeople.js';
@@ -16,22 +17,47 @@ import { renderWarnings } from './warnings.js';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-const fileInput = (accept, onBuffer) =>
+const READ_ERROR = 'No se pudo leer el archivo.';
+
+const fileInput = (accept, onBuffer, onError) =>
   el('input', {
     type: 'file',
     accept,
     onChange: async (e) => {
       const file = e.target.files[0];
-      if (file) onBuffer(await file.arrayBuffer());
+      e.target.value = '';
+      if (!file) return;
+      let buffer;
+      try {
+        buffer = await file.arrayBuffer();
+      } catch {
+        onError(READ_ERROR);
+        return;
+      }
+      onBuffer(buffer);
     },
   });
 
-function renderStatus(box, { error = null, summary = '', items = [] }) {
+function renderStatus(box, { error = null, summary = '', table = null, items = [] }) {
   box.replaceChildren(
-    error ? el('p', { className: 'error' }, error) : el('p', {}, summary),
+    error ? el('p', { className: 'error' }, error) : null,
+    summary ? el('p', {}, summary) : null,
+    table,
     items.length ? el('ul', {}, items.map((i) => el('li', {}, i))) : null,
   );
 }
+
+const exceptionsTable = (exceptions) =>
+  el(
+    'table',
+    { className: 'exceptions' },
+    el('thead', {}, el('tr', {}, ['Persona', 'Inicio', 'Fin'].map((h) => el('th', {}, h)))),
+    el(
+      'tbody',
+      {},
+      exceptions.map((e) => el('tr', {}, el('td', {}, e.person), el('td', {}, formatDateTime(e.start)), el('td', {}, formatDateTime(e.end)))),
+    ),
+  );
 
 export function renderApp(root, { storage = globalThis.localStorage } = {}) {
   const loaded = loadConfig(storage);
@@ -53,12 +79,29 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     notice.hidden = !text;
   };
 
+  let seedEdited = false;
+  const seedInput = el('input', {
+    type: 'number',
+    name: 'seed',
+    min: 0,
+    step: 1,
+    value: defaultSeed(state.config),
+    onInput: () => (seedEdited = true),
+  });
+  const readSeed = () => {
+    const seed = Number(seedInput.value);
+    return seedInput.value !== '' && Number.isInteger(seed) && seed >= 0 ? seed : defaultSeed(state.config);
+  };
+
   const configFormBox = el('div');
   const configSection = el('section', { className: 'card' }, configFormBox);
   const configForm = renderConfigForm(configFormBox, state.config, (config, validation) => {
     state.config = config;
     state.configValid = validation.valid;
-    if (validation.valid) saveConfig(config, storage);
+    if (validation.valid) {
+      saveConfig(config, storage);
+      if (!seedEdited) seedInput.value = defaultSeed(config);
+    }
     refreshButtons();
   });
   const importInput = el('input', {
@@ -69,7 +112,13 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
       const file = e.target.files[0];
       e.target.value = '';
       if (!file) return;
-      const { config, error } = parseConfigJson(await file.text());
+      let text;
+      try {
+        text = await file.text();
+      } catch {
+        return showNotice(READ_ERROR);
+      }
+      const { config, error } = parseConfigJson(text);
       if (error) return showNotice(error);
       showNotice('');
       configForm.setConfig(config);
@@ -101,7 +150,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     el(
       'div',
       { className: 'tools' },
-      fileInput('.xlsx,.xls,.csv', (buffer) => controller.loadPeople(buffer)),
+      fileInput('.xlsx,.xls,.csv', (buffer) => controller.loadPeople(buffer), renderPeopleStatus),
       el('button', { type: 'button', onClick: () => downloadBytes(buildPeopleTemplate(), 'plantilla_personas.xlsx', XLSX_MIME) }, 'Descargar plantilla'),
     ),
     peopleStatus,
@@ -116,13 +165,13 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     el(
       'div',
       { className: 'tools' },
-      fileInput('.xlsx,.xls,.csv', (buffer) => controller.loadExceptions(buffer)),
+      fileInput('.xlsx,.xls,.csv', (buffer) => controller.loadExceptions(buffer), renderExceptionsStatus),
       el('button', { type: 'button', onClick: () => downloadBytes(buildExceptionsTemplate(), 'plantilla_excepciones.xlsx', XLSX_MIME) }, 'Descargar plantilla'),
     ),
     exceptionsStatus,
   );
 
-  const generateButton = el('button', { type: 'button', className: 'primary', onClick: () => controller.generate(defaultSeed(state.config)) }, 'Generar');
+  const generateButton = el('button', { type: 'button', className: 'primary', onClick: () => controller.generate(readSeed()) }, 'Generar');
   const regenerateButton = el('button', { type: 'button', onClick: () => controller.generate(randomSeed()) }, 'Regenerar');
   const downloadButton = el(
     'button',
@@ -138,6 +187,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     'Descargar Excel',
   );
   const seedLabel = el('span', { className: 'seed' });
+  const seedField = el('label', { className: 'field' }, el('span', {}, 'Semilla'), seedInput);
   const warningsBox = el('div');
   const gridBox = el('div');
   const reportBox = el('div');
@@ -145,7 +195,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     'section',
     { className: 'card' },
     el('h2', {}, '4. Resultado'),
-    el('div', { className: 'tools' }, generateButton, regenerateButton, downloadButton, seedLabel),
+    el('div', { className: 'tools' }, seedField, generateButton, regenerateButton, downloadButton, seedLabel),
     warningsBox,
     gridBox,
     reportBox,
@@ -167,34 +217,50 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     downloadButton.disabled = !state.result;
   }
 
-  function parseExceptions() {
-    if (!state.exceptionsBuffer) return;
-    const { exceptions, rowErrors, error } = readExceptions(state.exceptionsBuffer, state.people);
+  function renderPeopleStatus(error = null) {
+    renderStatus(peopleStatus, {
+      error,
+      summary: state.people.length ? `${state.people.length} personas: ${state.people.join(', ')}` : '',
+      items: state.peopleWarnings,
+    });
+  }
+
+  function renderExceptionsStatus(error = null) {
+    renderStatus(exceptionsStatus, {
+      error,
+      summary: state.exceptionsBuffer ? `${state.exceptions.length} excepciones cargadas.` : '',
+      table: state.exceptions.length ? exceptionsTable(state.exceptions) : null,
+      items: state.exceptionErrors,
+    });
+  }
+
+  function applyExceptions(buffer) {
+    const { exceptions, rowErrors, error } = readExceptions(buffer, state.people);
     if (error) {
-      renderStatus(exceptionsStatus, { error });
+      renderExceptionsStatus(error);
       return;
     }
+    state.exceptionsBuffer = buffer;
     state.exceptions = exceptions;
     state.exceptionErrors = rowErrors.map((e) => `Excepciones, fila ${e.row}: ${e.reason}`);
-    renderStatus(exceptionsStatus, { summary: `${exceptions.length} excepciones cargadas.`, items: state.exceptionErrors });
+    renderExceptionsStatus();
   }
 
   const controller = {
     loadPeople(buffer) {
       const { people, warnings, error } = readPeople(buffer);
       if (error) {
-        renderStatus(peopleStatus, { error });
+        renderPeopleStatus(error);
         return;
       }
       state.people = people;
       state.peopleWarnings = warnings;
-      renderStatus(peopleStatus, { summary: `${people.length} personas: ${people.join(', ')}`, items: warnings });
-      parseExceptions();
+      renderPeopleStatus();
+      if (state.exceptionsBuffer) applyExceptions(state.exceptionsBuffer);
       refreshButtons();
     },
     loadExceptions(buffer) {
-      state.exceptionsBuffer = buffer;
-      parseExceptions();
+      applyExceptions(buffer);
     },
     generate(seed) {
       if (!state.configValid || !state.people.length) return null;
@@ -202,6 +268,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
       const result = generateSchedule({ ...context, seed });
       state.result = result;
       state.context = context;
+      seedInput.value = seed;
       seedLabel.textContent = `Semilla: ${seed}`;
       renderWarnings(warningsBox, [...state.peopleWarnings, ...state.exceptionErrors, ...result.warnings]);
       renderScheduleGrid(gridBox, { result, config: context.config, people: context.people, exceptions: context.exceptions });
