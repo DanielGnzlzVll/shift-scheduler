@@ -171,6 +171,17 @@ describe('renderApp', () => {
     expect(picker.querySelector('.file-name').textContent).toBe('personas.xlsx');
   });
 
+  it('shows the privacy note and a WhatsApp link for suggestions', () => {
+    const root = document.createElement('div');
+    renderApp(root, { storage: memoryStorage() });
+    expect(root.querySelector('.privacy').textContent).toContain('Nada queda guardado en nuestros servidores');
+    const link = root.querySelector('footer a.whatsapp');
+    expect(link.textContent).toBe('Escríbeme por WhatsApp');
+    expect(link.getAttribute('href')).toMatch(/^https:\/\/wa\.me\/573016131395\?text=/);
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
   describe('seed', () => {
     afterEach(() => vi.restoreAllMocks());
 

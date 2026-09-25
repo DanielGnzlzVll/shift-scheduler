@@ -19,6 +19,8 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 
 const READ_ERROR = 'No se pudo leer el archivo.';
 
+const WHATSAPP_URL = `https://wa.me/573016131395?text=${encodeURIComponent('Hola, tengo una sugerencia para Cuadro de Turnos: ')}`;
+
 const NO_FILE = 'Ningún archivo seleccionado';
 
 const fileInput = (accept, onBuffer, onError) => {
@@ -198,13 +200,24 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
       { className: 'hero' },
       el('span', { className: 'eyebrow' }, 'Planificador mensual'),
       el('h1', {}, APP_TITLE),
-      el('p', {}, 'Genera el cuadro de turnos del mes a partir de una lista de nombres. Todo se procesa en tu navegador; ningún dato sale de tu equipo.'),
+      el('p', {}, 'Genera el cuadro de turnos del mes a partir de una lista de nombres.'),
+      el(
+        'p',
+        { className: 'privacy' },
+        'Nada queda guardado en nuestros servidores: todo se ejecuta localmente en tu navegador, por lo que su uso no incumple ninguna política de privacidad.',
+      ),
     ),
     notice,
     configSection,
     peopleSection,
     exceptionsSection,
     resultSection,
+    el(
+      'footer',
+      { className: 'site-footer' },
+      '¿Sugerencias o solicitudes? ',
+      el('a', { href: WHATSAPP_URL, target: '_blank', rel: 'noopener noreferrer', className: 'whatsapp' }, 'Escríbeme por WhatsApp'),
+    ),
   );
 
   function refreshButtons() {
