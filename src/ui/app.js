@@ -19,14 +19,18 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 
 const READ_ERROR = 'No se pudo leer el archivo.';
 
-const fileInput = (accept, onBuffer, onError) =>
-  el('input', {
+const NO_FILE = 'Ningún archivo seleccionado';
+
+const fileInput = (accept, onBuffer, onError) => {
+  const fileName = el('span', { className: 'file-name' }, NO_FILE);
+  const input = el('input', {
     type: 'file',
     accept,
     onChange: async (e) => {
       const file = e.target.files[0];
       e.target.value = '';
       if (!file) return;
+      fileName.textContent = file.name ?? NO_FILE;
       let buffer;
       try {
         buffer = await file.arrayBuffer();
@@ -37,6 +41,8 @@ const fileInput = (accept, onBuffer, onError) =>
       onBuffer(buffer);
     },
   });
+  return el('label', { className: 'file-picker' }, input, el('span', { className: 'file-button' }, 'Seleccionar archivo'), fileName);
+};
 
 function renderStatus(box, { error = null, summary = '', table = null, items = [] }) {
   box.replaceChildren(

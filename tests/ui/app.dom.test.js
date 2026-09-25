@@ -157,6 +157,20 @@ describe('renderApp', () => {
     expect(root.querySelector('.notice').hidden).toBe(false);
   });
 
+  it('labels file pickers and time fields in Spanish without native browser text', async () => {
+    const root = document.createElement('div');
+    renderApp(root, { storage: memoryStorage() });
+    const picker = section(root, 1).querySelector('.file-picker');
+    expect(picker.querySelector('.file-button').textContent).toBe('Seleccionar archivo');
+    expect(picker.querySelector('.file-name').textContent).toBe('Ningún archivo seleccionado');
+    expect(root.querySelector('input[type=time]')).toBeNull();
+    expect(root.querySelector('[name="shifts.0.start"]').placeholder).toBe('HH:mm');
+
+    uploadFile(picker.querySelector('input[type=file]'), { name: 'personas.xlsx', arrayBuffer: async () => workbook([['Ana']]) });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(picker.querySelector('.file-name').textContent).toBe('personas.xlsx');
+  });
+
   describe('seed', () => {
     afterEach(() => vi.restoreAllMocks());
 

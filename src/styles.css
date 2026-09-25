@@ -203,7 +203,7 @@ body {
 }
 
 button,
-input::file-selector-button {
+.file-button {
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
@@ -223,7 +223,7 @@ input::file-selector-button {
 }
 
 button:hover:not(:disabled),
-input::file-selector-button:hover {
+.file-picker:hover .file-button {
   transform: translateY(-1px);
   background: #302944;
 }
@@ -331,17 +331,50 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
 }
 
-input[type='file'] {
-  padding: 0.3rem;
-  border-style: dashed;
+.file-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  max-width: 100%;
+  padding: 0.3rem 0.9rem 0.3rem 0.3rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
   color: var(--muted);
   cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 
-input::file-selector-button {
-  margin-right: 0.8rem;
+.file-picker:hover {
+  border-color: var(--purple);
+}
+
+.file-picker:focus-within {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+}
+
+.file-picker input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-button {
   background: var(--gradient);
   color: #fff;
+}
+
+.file-name {
+  overflow: hidden;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 input[type='number']::-webkit-inner-spin-button {
