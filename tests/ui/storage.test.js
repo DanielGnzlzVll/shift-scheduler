@@ -34,4 +34,14 @@ describe('storage', () => {
     expect(parseConfigJson('nope')).toEqual({ config: null, error: 'El archivo no es un JSON válido.' });
     expect(parseConfigJson('{"shifts": []}')).toEqual({ config: null, error: 'El archivo no contiene una configuración válida.' });
   });
+
+  it('upgrades stored and imported configs that lack the per-shift consecutive limit', () => {
+    const legacy = defaultConfig(new Date(2026, 8, 25));
+    for (const shift of legacy.shifts) delete shift.maxConsecutive;
+    const storage = memoryStorage({ 'shift-scheduler.config': JSON.stringify(legacy) });
+    const loaded = loadConfig(storage);
+    expect(loaded.notice).toBeNull();
+    expect(loaded.config.shifts.map((s) => s.maxConsecutive)).toEqual([3, 3]);
+    expect(parseConfigJson(JSON.stringify(legacy)).config.shifts.map((s) => s.maxConsecutive)).toEqual([3, 3]);
+  });
 });

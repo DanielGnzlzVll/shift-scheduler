@@ -1,11 +1,11 @@
-import { defaultConfig, validateConfig } from '../core/config.js';
+import { defaultConfig, normalizeConfig, validateConfig } from '../core/config.js';
 
 const KEY = 'shift-scheduler.config';
 
 export function parseConfigJson(text) {
   let config;
   try {
-    config = JSON.parse(text);
+    config = normalizeConfig(JSON.parse(text));
   } catch {
     return { config: null, error: 'El archivo no es un JSON válido.' };
   }

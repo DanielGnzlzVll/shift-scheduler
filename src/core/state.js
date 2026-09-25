@@ -3,14 +3,18 @@ export function createState(people, exceptions, targets, config) {
   const minutes = {};
   const weekend = {};
   const shiftCounts = {};
-  for (const shift of config.shifts) shiftCounts[shift.id] = {};
+  const shiftLimits = {};
+  for (const shift of config.shifts) {
+    shiftCounts[shift.id] = {};
+    shiftLimits[shift.id] = shift.maxConsecutive ?? Infinity;
+  }
   for (const person of people) {
     byPerson[person] = [];
     minutes[person] = 0;
     weekend[person] = 0;
     for (const shift of config.shifts) shiftCounts[shift.id][person] = 0;
   }
-  return { people, config, exceptions, targets, byPerson, minutes, weekend, shiftCounts, seats: {} };
+  return { people, config, exceptions, targets, byPerson, minutes, weekend, shiftCounts, shiftLimits, seats: {} };
 }
 
 export function addAssignment(state, person, slot) {

@@ -1,5 +1,5 @@
 import { MONTH_NAMES } from '../core/calendar.js';
-import { newShiftId, validateConfig } from '../core/config.js';
+import { DEFAULT_MAX_CONSECUTIVE, newShiftId, validateConfig } from '../core/config.js';
 import { clone, el } from './dom.js';
 
 const errorSlot = (field) => el('span', { className: 'error', dataset: { errorFor: field } });
@@ -46,6 +46,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
         cell(input(`shifts.${i}.end`, shift.end, (v) => (shift.end = v), { inputmode: 'numeric', placeholder: 'HH:mm', maxlength: 5, size: 5, autocomplete: 'off' })),
         cell(numberInput(`shifts.${i}.requiredWeekday`, shift.requiredWeekday, (v) => (shift.requiredWeekday = v), { min: 0, step: 1 })),
         cell(numberInput(`shifts.${i}.requiredWeekend`, shift.requiredWeekend, (v) => (shift.requiredWeekend = v), { min: 0, step: 1 })),
+        cell(numberInput(`shifts.${i}.maxConsecutive`, shift.maxConsecutive, (v) => (shift.maxConsecutive = v), { min: 1, max: 31, step: 1 })),
         el('td', {}, el('button', { type: 'button', className: 'ghost danger', onClick: () => { config.shifts.splice(i, 1); render(); emit(); } }, 'Eliminar')),
       ),
     );
@@ -67,7 +68,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
       el(
         'table',
         { className: 'shifts' },
-        el('thead', {}, el('tr', {}, ['Turno', 'Código', 'Inicio', 'Fin', 'Personas L–V', 'Personas S–D y festivos', ''].map((h) => el('th', {}, h)))),
+        el('thead', {}, el('tr', {}, ['Turno', 'Código', 'Inicio', 'Fin', 'Personas L–V', 'Personas S–D y festivos', 'Máx. seguidos', ''].map((h) => el('th', {}, h)))),
         el('tbody', {}, rows),
       ),
       errorSlot('shifts'),
@@ -77,7 +78,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
           type: 'button',
           className: 'ghost add',
           onClick: () => {
-            config.shifts.push({ id: newShiftId(), name: '', code: '', start: '07:00', end: '15:00', requiredWeekday: 1, requiredWeekend: 1 });
+            config.shifts.push({ id: newShiftId(), name: '', code: '', start: '07:00', end: '15:00', requiredWeekday: 1, requiredWeekend: 1, maxConsecutive: DEFAULT_MAX_CONSECUTIVE });
             render();
             emit();
           },

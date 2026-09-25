@@ -36,6 +36,19 @@ describe('renderConfigForm', () => {
     expect(container.querySelectorAll('table.shifts tbody tr')).toHaveLength(2);
   });
 
+  it('edits the per-shift consecutive limit and defaults new shifts to 3', () => {
+    const container = document.createElement('div');
+    const onChange = vi.fn();
+    renderConfigForm(container, defaultConfig(new Date(2026, 8, 25)), onChange);
+    expect([...container.querySelectorAll('table.shifts thead th')].map((th) => th.textContent)).toContain('Máx. seguidos');
+    setValue(container.querySelector('[name="shifts.1.maxConsecutive"]'), '2');
+    expect(onChange.mock.calls.at(-1)[0].shifts[1].maxConsecutive).toBe(2);
+    setValue(container.querySelector('[name="shifts.1.maxConsecutive"]'), '0');
+    expect(container.querySelector('[data-error-for="shifts.1.maxConsecutive"]').textContent).toBe('Debe ser un entero entre 1 y 31');
+    [...container.querySelectorAll('button')].find((b) => b.textContent === 'Agregar turno').click();
+    expect(onChange.mock.calls.at(-1)[0].shifts[2].maxConsecutive).toBe(3);
+  });
+
   it('updates numeric, month, holiday and overtime fields', () => {
     const container = document.createElement('div');
     const onChange = vi.fn();

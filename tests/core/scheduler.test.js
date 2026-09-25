@@ -44,6 +44,12 @@ function assertHardRules(result, config, exceptions = []) {
       run = days[i] === days[i - 1] + 1 ? run + 1 : 1;
       expect(run).toBeLessThanOrEqual(config.maxConsecutiveDays);
     }
+    let shiftRun = 1;
+    for (let i = 1; i < list.length; i++) {
+      shiftRun = days[i] === days[i - 1] + 1 && list[i].shiftId === list[i - 1].shiftId ? shiftRun + 1 : 1;
+      const limit = config.shifts.find((s) => s.id === list[i].shiftId).maxConsecutive ?? Infinity;
+      expect(shiftRun).toBeLessThanOrEqual(limit);
+    }
     for (const e of exceptions.filter((x) => x.person === person)) {
       for (const a of list) expect(a.start < e.end && e.start < a.end).toBe(false);
     }
@@ -58,6 +64,22 @@ describe('generateSchedule', () => {
     expect(result.uncovered).toEqual([]);
     for (const row of result.report) expect(Math.abs(row.diff)).toBeLessThanOrEqual(12);
     expect(result.assignments).toHaveLength(56);
+  });
+
+  it('respects per-shift consecutive limits', () => {
+    const config = dayNight();
+    config.shifts[0].maxConsecutive = 2;
+    config.shifts[1].maxConsecutive = 1;
+    const result = generateSchedule({ people: [...PEOPLE, 'Sofía'], config });
+    assertHardRules(result, config);
+    expect(result.uncovered).toEqual([]);
+    const nights = result.assignments.filter((a) => a.shiftId === 'n');
+    for (const a of nights) {
+      const next = new Date(`${a.date}T00:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      const nextDate = next.toISOString().slice(0, 10);
+      expect(nights.some((b) => b.person === a.person && b.date === nextDate)).toBe(false);
+    }
   });
 
   it('is deterministic for a seed and uses defaultSeed', () => {

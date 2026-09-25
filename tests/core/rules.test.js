@@ -89,4 +89,54 @@ describe('canAssign', () => {
     addAssignment(state, 'Ana', day1);
     expect(canAssign(state, 'Ana', slot(1, 19), day1.id)).toBe(true);
   });
+
+  describe('per-shift consecutive limit', () => {
+    const limited = (limits, rules = {}) =>
+      makeState({
+        shifts: [
+          { id: 'd', maxConsecutive: limits.d },
+          { id: 'n', maxConsecutive: limits.n },
+        ],
+        maxConsecutiveDays: 10,
+        ...rules,
+      });
+
+    it('blocks a run of the same shift longer than its limit', () => {
+      const state = limited({ d: 3, n: 2 });
+      addAssignment(state, 'Ana', slot(1, 19));
+      addAssignment(state, 'Ana', slot(2, 19));
+      expect(canAssign(state, 'Ana', slot(3, 19))).toBe(false);
+    });
+
+    it('allows the same shift again after a day off', () => {
+      const state = limited({ d: 3, n: 2 });
+      addAssignment(state, 'Ana', slot(1, 19));
+      addAssignment(state, 'Ana', slot(2, 19));
+      expect(canAssign(state, 'Ana', slot(4, 19))).toBe(true);
+    });
+
+    it('lets a different shift break the run', () => {
+      const state = limited({ d: 2, n: 3 }, { minRestHours: 0 });
+      addAssignment(state, 'Ana', slot(1, 7));
+      addAssignment(state, 'Ana', slot(2, 7));
+      expect(canAssign(state, 'Ana', slot(3, 7))).toBe(false);
+      addAssignment(state, 'Ana', slot(3, 19));
+      expect(canAssign(state, 'Ana', slot(4, 7))).toBe(true);
+    });
+
+    it('counts runs on both sides of the day', () => {
+      const state = limited({ d: 3, n: 2 });
+      addAssignment(state, 'Ana', slot(1, 19));
+      addAssignment(state, 'Ana', slot(3, 19));
+      expect(canAssign(state, 'Ana', slot(2, 19))).toBe(false);
+    });
+
+    it('ignores the assignment being moved out', () => {
+      const state = limited({ d: 3, n: 2 });
+      const first = slot(1, 19);
+      addAssignment(state, 'Ana', first);
+      addAssignment(state, 'Ana', slot(2, 19));
+      expect(canAssign(state, 'Ana', slot(3, 19), first.id)).toBe(true);
+    });
+  });
 });

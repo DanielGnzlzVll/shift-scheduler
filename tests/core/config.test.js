@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultConfig, newShiftId, validateConfig } from '../../src/core/config.js';
+import { DEFAULT_MAX_CONSECUTIVE, defaultConfig, newShiftId, normalizeConfig, validateConfig } from '../../src/core/config.js';
 
 const fields = (config) => validateConfig(config).errors.map((e) => e.field);
 
@@ -12,10 +12,11 @@ describe('defaultConfig', () => {
 
   it('has a valid day/night setup', () => {
     const config = defaultConfig(new Date(2026, 8, 25));
-    expect(config.shifts.map((s) => [s.name, s.code, s.start, s.end, s.requiredWeekday, s.requiredWeekend])).toEqual([
-      ['Día', 'D', '07:00', '19:00', 2, 2],
-      ['Noche', 'N', '19:00', '07:00', 1, 1],
+    expect(config.shifts.map((s) => [s.name, s.code, s.start, s.end, s.requiredWeekday, s.requiredWeekend, s.maxConsecutive])).toEqual([
+      ['Día', 'D', '07:00', '19:00', 2, 2, 3],
+      ['Noche', 'N', '19:00', '07:00', 1, 1, 3],
     ]);
+    expect(DEFAULT_MAX_CONSECUTIVE).toBe(3);
     expect(config).toMatchObject({
       holidays: [],
       weeklyHours: 42,
@@ -72,9 +73,41 @@ describe('validateConfig', () => {
     );
   });
 
+  it('requires a per-shift consecutive limit between 1 and 31', () => {
+    for (const value of [0, 32, 1.5, undefined, '3']) {
+      const config = base();
+      config.shifts[1].maxConsecutive = value;
+      expect(fields(config)).toContain('shifts.1.maxConsecutive');
+    }
+    const config = base();
+    config.shifts[1].maxConsecutive = 31;
+    expect(fields(config)).not.toContain('shifts.1.maxConsecutive');
+    config.shifts[1].maxConsecutive = 0;
+    expect(validateConfig(config).errors.find((e) => e.field === 'shifts.1.maxConsecutive').message).toBe(
+      'Debe ser un entero entre 1 y 31',
+    );
+  });
+
   it('returns Spanish messages', () => {
     const { errors } = validateConfig({ ...base(), shifts: [] });
     expect(errors[0].message).toBe('Debe haber al menos un turno');
+  });
+});
+
+describe('normalizeConfig', () => {
+  it('fills the default consecutive limit for shifts saved without it', () => {
+    const legacy = defaultConfig(new Date(2026, 8, 25));
+    for (const shift of legacy.shifts) delete shift.maxConsecutive;
+    legacy.shifts[1].maxConsecutive = 2;
+    const normalized = normalizeConfig(legacy);
+    expect(normalized.shifts.map((s) => s.maxConsecutive)).toEqual([3, 2]);
+    expect(legacy.shifts[0].maxConsecutive).toBeUndefined();
+    expect(validateConfig(normalized).valid).toBe(true);
+  });
+
+  it('leaves non-config values untouched', () => {
+    expect(normalizeConfig(null)).toBeNull();
+    expect(normalizeConfig({ shifts: 'x' })).toEqual({ shifts: 'x' });
   });
 });
 

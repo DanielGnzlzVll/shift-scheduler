@@ -4,6 +4,7 @@ export function canAssign(state, person, slot, ignoreSlotId = null) {
   const { minRestHours, maxConsecutiveDays, allowOvertime } = state.config;
   const rest = minRestHours * 60;
   const workedDays = new Set();
+  const sameShiftDays = new Set();
   let minutes = 0;
 
   for (const a of state.byPerson[person]) {
@@ -13,6 +14,7 @@ export function canAssign(state, person, slot, ignoreSlotId = null) {
     if (a.end <= slot.start && slot.start - a.end < rest) return false;
     if (slot.end <= a.start && a.start - slot.end < rest) return false;
     workedDays.add(a.day);
+    if (a.shiftId === slot.shiftId) sameShiftDays.add(a.day);
     minutes += a.minutes;
   }
 
@@ -24,6 +26,11 @@ export function canAssign(state, person, slot, ignoreSlotId = null) {
   for (let d = slot.day - 1; workedDays.has(d); d--) run++;
   for (let d = slot.day + 1; workedDays.has(d); d++) run++;
   if (run > maxConsecutiveDays) return false;
+
+  let shiftRun = 1;
+  for (let d = slot.day - 1; sameShiftDays.has(d); d--) shiftRun++;
+  for (let d = slot.day + 1; sameShiftDays.has(d); d++) shiftRun++;
+  if (shiftRun > state.shiftLimits[slot.shiftId]) return false;
 
   if (!allowOvertime && minutes + slot.minutes > state.targets[person] * 60 + 1e-6) return false;
 
