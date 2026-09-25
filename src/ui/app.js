@@ -19,6 +19,33 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 
 const READ_ERROR = 'No se pudo leer el archivo.';
 
+const REPO_URL = 'https://github.com/DanielGnzlzVll/shift-scheduler';
+
+export function buildInfo(commit = import.meta.env.VITE_BUILD_COMMIT, date = import.meta.env.VITE_BUILD_DATE) {
+  if (!commit) return null;
+  const built = date ? new Date(date) : null;
+  return {
+    commit,
+    shortCommit: commit.slice(0, 7),
+    url: `${REPO_URL}/commit/${commit}`,
+    date:
+      built && !Number.isNaN(built.getTime())
+        ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Bogota' }).format(built)
+        : null,
+  };
+}
+
+const buildLine = (info) =>
+  info
+    ? el(
+        'p',
+        { className: 'build-info' },
+        'Versión ',
+        el('a', { href: info.url, target: '_blank', rel: 'noopener noreferrer' }, info.shortCommit),
+        info.date ? ` · Compilado el ${info.date} (hora de Colombia)` : null,
+      )
+    : null;
+
 const WHATSAPP_URL = `https://wa.me/573016131395?text=${encodeURIComponent('Hola, tengo una sugerencia para Cuadro de Turnos: ')}`;
 
 const NO_FILE = 'Ningún archivo seleccionado';
@@ -215,8 +242,8 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     el(
       'footer',
       { className: 'site-footer' },
-      '¿Sugerencias o solicitudes? ',
-      el('a', { href: WHATSAPP_URL, target: '_blank', rel: 'noopener noreferrer', className: 'whatsapp' }, 'Escríbeme por WhatsApp'),
+      el('p', {}, '¿Sugerencias o solicitudes? ', el('a', { href: WHATSAPP_URL, target: '_blank', rel: 'noopener noreferrer', className: 'whatsapp' }, 'Escríbeme por WhatsApp')),
+      buildLine(buildInfo()),
     ),
   );
 

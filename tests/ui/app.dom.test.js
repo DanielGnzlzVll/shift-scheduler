@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultSeed } from '../../src/core/scheduler.js';
-import { renderApp } from '../../src/ui/app.js';
+import { buildInfo, renderApp } from '../../src/ui/app.js';
 
 const memoryStorage = () => {
   const data = {};
@@ -180,6 +180,15 @@ describe('renderApp', () => {
     expect(link.getAttribute('href')).toMatch(/^https:\/\/wa\.me\/573016131395\?text=/);
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('formats build info with a short commit link and the build date in Colombia time', () => {
+    const info = buildInfo('0123456789abcdef', '2026-09-25T20:40:00.000Z');
+    expect(info.shortCommit).toBe('0123456');
+    expect(info.url).toBe('https://github.com/DanielGnzlzVll/shift-scheduler/commit/0123456789abcdef');
+    expect(info.date).toMatch(/15:40|3:40/);
+    expect(buildInfo('', '2026-09-25T20:40:00.000Z')).toBeNull();
+    expect(buildInfo('abc1234', 'not a date').date).toBeNull();
   });
 
   describe('seed', () => {
