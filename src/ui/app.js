@@ -134,11 +134,12 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
         'button',
         {
           type: 'button',
+          className: 'ghost',
           onClick: () => downloadBytes(new TextEncoder().encode(serializeConfig(state.config)), 'configuracion_turnos.json', 'application/json'),
         },
         'Exportar configuración',
       ),
-      el('button', { type: 'button', onClick: () => importInput.click() }, 'Importar configuración'),
+      el('button', { type: 'button', className: 'ghost', onClick: () => importInput.click() }, 'Importar configuración'),
       importInput,
     ),
   );
@@ -153,7 +154,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
       'div',
       { className: 'tools' },
       fileInput('.xlsx,.xls,.csv', (buffer) => controller.loadPeople(buffer), renderPeopleStatus),
-      el('button', { type: 'button', onClick: () => downloadBytes(buildPeopleTemplate(), 'plantilla_personas.xlsx', XLSX_MIME) }, 'Descargar plantilla'),
+      el('button', { type: 'button', className: 'ghost', onClick: () => downloadBytes(buildPeopleTemplate(), 'plantilla_personas.xlsx', XLSX_MIME) }, 'Descargar plantilla'),
     ),
     peopleStatus,
   );
@@ -168,17 +169,18 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
       'div',
       { className: 'tools' },
       fileInput('.xlsx,.xls,.csv', (buffer) => controller.loadExceptions(buffer), renderExceptionsStatus),
-      el('button', { type: 'button', onClick: () => downloadBytes(buildExceptionsTemplate(), 'plantilla_excepciones.xlsx', XLSX_MIME) }, 'Descargar plantilla'),
+      el('button', { type: 'button', className: 'ghost', onClick: () => downloadBytes(buildExceptionsTemplate(), 'plantilla_excepciones.xlsx', XLSX_MIME) }, 'Descargar plantilla'),
     ),
     exceptionsStatus,
   );
 
   const generateButton = el('button', { type: 'button', className: 'primary', onClick: () => controller.generate(readSeed()) }, 'Generar');
-  const regenerateButton = el('button', { type: 'button', onClick: () => controller.generate(randomSeed()) }, 'Regenerar');
+  const regenerateButton = el('button', { type: 'button', className: 'ghost', onClick: () => controller.generate(randomSeed()) }, 'Regenerar');
   const downloadButton = el(
     'button',
     {
       type: 'button',
+      className: 'accent',
       onClick: () =>
         downloadBytes(
           buildScheduleWorkbook(state.result, state.context.config, state.context.people),
@@ -190,21 +192,27 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
   );
   const seedLabel = el('span', { className: 'seed' });
   const seedField = el('label', { className: 'field' }, el('span', {}, 'Semilla'), seedInput);
-  const warningsBox = el('div');
-  const gridBox = el('div');
-  const reportBox = el('div');
+  const warningsBox = el('div', { className: 'result-block' });
+  const gridBox = el('div', { className: 'result-block' });
+  const reportBox = el('div', { className: 'result-block' });
   const resultSection = el(
     'section',
     { className: 'card' },
     el('h2', {}, '4. Resultado'),
-    el('div', { className: 'tools' }, seedField, generateButton, regenerateButton, downloadButton, seedLabel),
+    el('div', { className: 'tools result-tools' }, seedField, generateButton, regenerateButton, downloadButton, seedLabel),
     warningsBox,
     gridBox,
     reportBox,
   );
 
   root.replaceChildren(
-    el('header', {}, el('h1', {}, APP_TITLE), el('p', {}, 'Genera el cuadro de turnos del mes a partir de una lista de nombres. Todo se procesa en tu navegador; ningún dato sale de tu equipo.')),
+    el(
+      'header',
+      { className: 'hero' },
+      el('span', { className: 'eyebrow' }, 'Planificador mensual'),
+      el('h1', {}, APP_TITLE),
+      el('p', {}, 'Genera el cuadro de turnos del mes a partir de una lista de nombres. Todo se procesa en tu navegador; ningún dato sale de tu equipo.'),
+    ),
     notice,
     configSection,
     peopleSection,

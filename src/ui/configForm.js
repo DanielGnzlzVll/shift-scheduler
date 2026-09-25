@@ -33,7 +33,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
   const numberInput = (name, value, apply, attrs = {}) =>
     input(name, value, (v) => apply(v === '' ? NaN : Number(v)), { type: 'number', ...attrs });
   const cell = (control) => el('td', {}, control, errorSlot(control.name));
-  const field = (label, control) => el('label', { className: 'field' }, el('span', {}, label), control, errorSlot(control.name));
+  const field = (label, control, className = 'field') => el('label', { className }, el('span', {}, label), control, errorSlot(control.name));
 
   const render = () => {
     const rows = config.shifts.map((shift, i) =>
@@ -46,7 +46,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
         cell(input(`shifts.${i}.end`, shift.end, (v) => (shift.end = v), { type: 'time' })),
         cell(numberInput(`shifts.${i}.requiredWeekday`, shift.requiredWeekday, (v) => (shift.requiredWeekday = v), { min: 0, step: 1 })),
         cell(numberInput(`shifts.${i}.requiredWeekend`, shift.requiredWeekend, (v) => (shift.requiredWeekend = v), { min: 0, step: 1 })),
-        el('td', {}, el('button', { type: 'button', onClick: () => { config.shifts.splice(i, 1); render(); emit(); } }, 'Eliminar')),
+        el('td', {}, el('button', { type: 'button', className: 'ghost danger', onClick: () => { config.shifts.splice(i, 1); render(); emit(); } }, 'Eliminar')),
       ),
     );
 
@@ -75,6 +75,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
         'button',
         {
           type: 'button',
+          className: 'ghost add',
           onClick: () => {
             config.shifts.push({ id: newShiftId(), name: '', code: '', start: '07:00', end: '15:00', requiredWeekday: 1, requiredWeekend: 1 });
             render();
@@ -95,7 +96,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
           'Festivos (AAAA-MM-DD, separados por coma)',
           input('holidays', config.holidays.join(', '), (v) => (config.holidays = v.split(',').map((s) => s.trim()).filter(Boolean))),
         ),
-        field('Permitir horas extra para cubrir turnos', overtime),
+        field('Permitir horas extra para cubrir turnos', overtime, 'field toggle'),
       ),
     );
     showErrors(container, validateConfig(config).errors);
