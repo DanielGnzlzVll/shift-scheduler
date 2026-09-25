@@ -667,6 +667,12 @@ tbody tr:hover {
   width: 100%;
 }
 
+.hint {
+  margin: 0.6rem 0 0;
+  color: var(--faint) !important;
+  font-size: 0.8rem;
+}
+
 .shifts td:first-child input {
   min-width: 8rem;
 }

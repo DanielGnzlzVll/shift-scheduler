@@ -44,7 +44,11 @@ describe('renderConfigForm', () => {
     setValue(container.querySelector('[name="shifts.1.maxConsecutive"]'), '2');
     expect(onChange.mock.calls.at(-1)[0].shifts[1].maxConsecutive).toBe(2);
     setValue(container.querySelector('[name="shifts.1.maxConsecutive"]'), '0');
-    expect(container.querySelector('[data-error-for="shifts.1.maxConsecutive"]').textContent).toBe('Debe ser un entero entre 1 y 31');
+    expect(container.querySelector('[data-error-for="shifts.1.maxConsecutive"]').textContent).toBe('Debe ser -1 (sin límite) o un entero entre 1 y 31');
+    setValue(container.querySelector('[name="shifts.1.maxConsecutive"]'), '-1');
+    expect(onChange.mock.calls.at(-1)[1].valid).toBe(true);
+    expect(container.querySelector('[name="shifts.0.maxConsecutive"]').value).toBe('-1');
+    expect(container.textContent).toContain('-1 = sin límite');
     [...container.querySelectorAll('button')].find((b) => b.textContent === 'Agregar turno').click();
     expect(onChange.mock.calls.at(-1)[0].shifts[2].maxConsecutive).toBe(3);
   });

@@ -47,7 +47,8 @@ function assertHardRules(result, config, exceptions = []) {
     let shiftRun = 1;
     for (let i = 1; i < list.length; i++) {
       shiftRun = days[i] === days[i - 1] + 1 && list[i].shiftId === list[i - 1].shiftId ? shiftRun + 1 : 1;
-      const limit = config.shifts.find((s) => s.id === list[i].shiftId).maxConsecutive ?? Infinity;
+      const configured = config.shifts.find((s) => s.id === list[i].shiftId).maxConsecutive;
+      const limit = configured === undefined || configured === -1 ? Infinity : configured;
       expect(shiftRun).toBeLessThanOrEqual(limit);
     }
     for (const e of exceptions.filter((x) => x.person === person)) {

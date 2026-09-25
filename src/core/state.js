@@ -1,3 +1,5 @@
+import { UNLIMITED_CONSECUTIVE } from './config.js';
+
 export function createState(people, exceptions, targets, config) {
   const byPerson = {};
   const minutes = {};
@@ -6,7 +8,7 @@ export function createState(people, exceptions, targets, config) {
   const shiftLimits = {};
   for (const shift of config.shifts) {
     shiftCounts[shift.id] = {};
-    shiftLimits[shift.id] = shift.maxConsecutive ?? Infinity;
+    shiftLimits[shift.id] = shift.maxConsecutive === undefined || shift.maxConsecutive === UNLIMITED_CONSECUTIVE ? Infinity : shift.maxConsecutive;
   }
   for (const person of people) {
     byPerson[person] = [];

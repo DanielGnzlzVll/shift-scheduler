@@ -131,6 +131,12 @@ describe('canAssign', () => {
       expect(canAssign(state, 'Ana', slot(2, 19))).toBe(false);
     });
 
+    it('treats -1 as no limit', () => {
+      const state = limited({ d: 3, n: -1 }, { maxConsecutiveDays: 31 });
+      for (const day of [1, 2, 3, 4, 5, 6, 7]) addAssignment(state, 'Ana', slot(day, 19));
+      expect(canAssign(state, 'Ana', slot(8, 19))).toBe(true);
+    });
+
     it('ignores the assignment being moved out', () => {
       const state = limited({ d: 3, n: 2 });
       const first = slot(1, 19);

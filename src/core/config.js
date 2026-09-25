@@ -2,6 +2,7 @@ import { daysInMonth } from './calendar.js';
 import { parseHHMM } from './time.js';
 
 export const DEFAULT_MAX_CONSECUTIVE = 3;
+export const UNLIMITED_CONSECUTIVE = -1;
 
 export function newShiftId() {
   return `s${Math.random().toString(36).slice(2, 10)}`;
@@ -13,7 +14,7 @@ export function defaultConfig(today = new Date()) {
     year: next.getFullYear(),
     month: next.getMonth() + 1,
     shifts: [
-      { id: 's1', name: 'Día', code: 'D', start: '07:00', end: '19:00', requiredWeekday: 2, requiredWeekend: 2, maxConsecutive: DEFAULT_MAX_CONSECUTIVE },
+      { id: 's1', name: 'Día', code: 'D', start: '07:00', end: '19:00', requiredWeekday: 2, requiredWeekend: 2, maxConsecutive: UNLIMITED_CONSECUTIVE },
       { id: 's2', name: 'Noche', code: 'N', start: '19:00', end: '07:00', requiredWeekday: 1, requiredWeekend: 1, maxConsecutive: DEFAULT_MAX_CONSECUTIVE },
     ],
     holidays: [],
@@ -69,7 +70,9 @@ export function validateConfig(config) {
     if (parseHHMM(shift?.end) === null) add(`${path}.end`, 'Hora inválida (HH:mm)');
     if (!isInt(shift?.requiredWeekday, 0, 1000)) add(`${path}.requiredWeekday`, 'Debe ser un entero mayor o igual a 0');
     if (!isInt(shift?.requiredWeekend, 0, 1000)) add(`${path}.requiredWeekend`, 'Debe ser un entero mayor o igual a 0');
-    if (!isInt(shift?.maxConsecutive, 1, 31)) add(`${path}.maxConsecutive`, 'Debe ser un entero entre 1 y 31');
+    if (shift?.maxConsecutive !== UNLIMITED_CONSECUTIVE && !isInt(shift?.maxConsecutive, 1, 31)) {
+      add(`${path}.maxConsecutive`, 'Debe ser -1 (sin límite) o un entero entre 1 y 31');
+    }
   });
 
   const holidays = Array.isArray(config.holidays) ? config.holidays : null;

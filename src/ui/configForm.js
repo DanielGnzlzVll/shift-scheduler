@@ -46,7 +46,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
         cell(input(`shifts.${i}.end`, shift.end, (v) => (shift.end = v), { inputmode: 'numeric', placeholder: 'HH:mm', maxlength: 5, size: 5, autocomplete: 'off' })),
         cell(numberInput(`shifts.${i}.requiredWeekday`, shift.requiredWeekday, (v) => (shift.requiredWeekday = v), { min: 0, step: 1 })),
         cell(numberInput(`shifts.${i}.requiredWeekend`, shift.requiredWeekend, (v) => (shift.requiredWeekend = v), { min: 0, step: 1 })),
-        cell(numberInput(`shifts.${i}.maxConsecutive`, shift.maxConsecutive, (v) => (shift.maxConsecutive = v), { min: 1, max: 31, step: 1 })),
+        cell(numberInput(`shifts.${i}.maxConsecutive`, shift.maxConsecutive, (v) => (shift.maxConsecutive = v), { min: -1, max: 31, step: 1, title: '-1 = sin límite' })),
         el('td', {}, el('button', { type: 'button', className: 'ghost danger', onClick: () => { config.shifts.splice(i, 1); render(); emit(); } }, 'Eliminar')),
       ),
     );
@@ -71,6 +71,7 @@ export function renderConfigForm(container, initialConfig, onChange) {
         el('thead', {}, el('tr', {}, ['Turno', 'Código', 'Inicio', 'Fin', 'Personas L–V', 'Personas S–D y festivos', 'Máx. seguidos', ''].map((h) => el('th', {}, h)))),
         el('tbody', {}, rows),
       ),
+      el('p', { className: 'hint' }, 'Máx. seguidos: días seguidos que una persona puede hacer ese turno; -1 = sin límite.'),
       errorSlot('shifts'),
       el(
         'button',
