@@ -40,10 +40,12 @@ const fileInput = (accept, onBuffer, onError) =>
 
 function renderStatus(box, { error = null, summary = '', table = null, items = [] }) {
   box.replaceChildren(
-    error ? el('p', { className: 'error' }, error) : null,
-    summary ? el('p', {}, summary) : null,
-    table,
-    items.length ? el('ul', {}, items.map((i) => el('li', {}, i))) : null,
+    ...[
+      error ? el('p', { className: 'error' }, error) : null,
+      summary ? el('p', {}, summary) : null,
+      table,
+      items.length ? el('ul', {}, items.map((i) => el('li', {}, i))) : null,
+    ].filter(Boolean),
   );
 }
 

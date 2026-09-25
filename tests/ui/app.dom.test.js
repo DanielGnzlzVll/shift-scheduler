@@ -71,6 +71,14 @@ describe('renderApp', () => {
     expect(button(root, 'Regenerar').disabled).toBe(false);
   });
 
+  it('never renders empty status parts as literal text', () => {
+    const root = document.createElement('div');
+    const app = renderApp(root, { storage: memoryStorage() });
+    app.loadPeople(workbook([['Ana'], ['Luis']]));
+    app.loadExceptions(workbook([['nombre', 'inicio', 'fin'], ['Ana', '2026-10-05', '2026-10-06']]));
+    expect(root.textContent).not.toContain('null');
+  });
+
   it('shows a file error without losing previous people', () => {
     const root = document.createElement('div');
     const app = renderApp(root, { storage: memoryStorage() });
