@@ -944,3 +944,91 @@ thead th.weekend {
     transition: none !important;
   }
 }
+
+.field-label,
+.th-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+button.help {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--purple-soft);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: help;
+  box-shadow: none;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s var(--ease);
+}
+
+button.help::before {
+  content: '?';
+}
+
+button.help:hover:not(:disabled),
+button.help:focus-visible {
+  transform: scale(1.12);
+  border-color: var(--orange);
+  background: rgba(249, 115, 22, 0.18);
+  color: var(--orange-soft);
+  box-shadow: none;
+  outline: none;
+}
+
+.card h2 button.help {
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: 0.72rem;
+}
+
+.help-tip {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: var(--radius-sm);
+  background: #1b1726;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  box-shadow:
+    0 12px 32px -8px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s var(--ease),
+    visibility 0.18s;
+}
+
+.help-tip.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}

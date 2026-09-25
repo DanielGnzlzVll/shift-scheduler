@@ -10,6 +10,7 @@ import { buildExceptionsTemplate, buildPeopleTemplate } from '../io/templates.js
 import { renderConfigForm } from './configForm.js';
 import { clone, el } from './dom.js';
 import { downloadBytes } from './download.js';
+import { helpButton } from './help.js';
 import { renderReportTable } from './reportTable.js';
 import { renderScheduleGrid } from './scheduleGrid.js';
 import { loadConfig, parseConfigJson, saveConfig, serializeConfig } from './storage.js';
@@ -166,7 +167,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
   const peopleSection = el(
     'section',
     { className: 'card' },
-    el('h2', {}, '2. Personas'),
+    el('h2', {}, '2. Personas', helpButton('people')),
     el('p', {}, 'Archivo de Excel con una sola hoja y los nombres en la primera columna.'),
     el(
       'div',
@@ -181,7 +182,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
   const exceptionsSection = el(
     'section',
     { className: 'card' },
-    el('h2', {}, '3. Excepciones (opcional)'),
+    el('h2', {}, '3. Excepciones (opcional)', helpButton('exceptions')),
     el('p', {}, 'Columnas: nombre, inicio, fin. En ese intervalo no se asignarán turnos a la persona. Si el fin no tiene hora, se bloquea todo ese día.'),
     el(
       'div',
