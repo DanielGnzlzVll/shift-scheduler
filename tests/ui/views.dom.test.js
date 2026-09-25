@@ -69,6 +69,16 @@ describe('renderReportTable', () => {
       'Total', '192.0', '336.0', '-144.0', '16', '1', '15', '5',
     ]);
   });
+
+  it('prints near-zero differences without a minus sign', () => {
+    const container = document.createElement('div');
+    const report = [{ person: 'Ana', hours: 168, target: 168.02, diff: -0.02, shifts: 14, byShift: { d: 7, n: 7 }, weekendShifts: 4 }];
+    renderReportTable(container, report, config.shifts);
+    const diff = container.querySelector('table.report tbody tr').children[3];
+    expect(diff.textContent).toBe('0.0');
+    expect(diff.className).toBe('');
+    expect(container.querySelector('table.report tfoot tr').children[3].textContent).toBe('0.0');
+  });
 });
 
 describe('renderWarnings', () => {

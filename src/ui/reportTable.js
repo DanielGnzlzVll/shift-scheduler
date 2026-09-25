@@ -1,6 +1,6 @@
 import { el } from './dom.js';
 
-const fmt = (n) => n.toFixed(1);
+const fmt = (n) => (Math.abs(n) < 0.05 ? 0 : n).toFixed(1);
 
 const diffCell = (diff) =>
   el('td', { className: diff > 0.05 ? 'pos' : diff < -0.05 ? 'neg' : '' }, `${diff > 0.05 ? '+' : ''}${fmt(diff)}`);
