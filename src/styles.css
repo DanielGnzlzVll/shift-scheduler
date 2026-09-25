@@ -1,10 +1,162 @@
 :root {
   font-family: system-ui, sans-serif;
   color: #1f2328;
-  background: #ffffff;
+  background: #f6f8fa;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --danger: #cf222e;
+  --ok: #1a7f37;
 }
 
 body {
   margin: 0;
-  padding: 2rem;
+  padding: 1.5rem;
+}
+
+header h1 {
+  margin: 0 0 0.25rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+button {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #f6f8fa;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.notice {
+  background: #fff8c5;
+  border: 1px solid #d4a72c;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.warnings li {
+  color: var(--danger);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+}
+
+.shifts input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid-scroll {
+  overflow-x: auto;
+}
+
+.schedule {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.schedule tbody th {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #fff;
+}
+
+.weekend {
+  background: #f0f3f6;
+}
+
+.blocked {
+  background: repeating-linear-gradient(45deg, #eee, #eee 4px, #ddd 4px, #ddd 8px);
+  color: #57606a;
+}
+
+.shift-0 { background: #ddf4ff; }
+.shift-1 { background: #e8e1ff; }
+.shift-2 { background: #dafbe1; }
+.shift-3 { background: #fff1e5; }
+.shift-4 { background: #ffebe9; }
+.shift-5 { background: #fbefff; }
+
+.coverage td.short {
+  background: #ffebe9;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.report td.pos {
+  color: #9a6700;
+}
+
+.report td.neg {
+  color: var(--danger);
+}
+
+.report tfoot th,
+.report tfoot td {
+  font-weight: 600;
 }
