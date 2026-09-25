@@ -19,7 +19,6 @@ describe('defaultConfig', () => {
     expect(DEFAULT_MAX_CONSECUTIVE).toBe(3);
     expect(UNLIMITED_CONSECUTIVE).toBe(-1);
     expect(config).toMatchObject({
-      holidays: [],
       weeklyHours: 42,
       minRestHours: 12,
       maxConsecutiveDays: 6,
@@ -61,12 +60,6 @@ describe('validateConfig', () => {
     );
   });
 
-  it('rejects holidays outside the selected month', () => {
-    expect(fields({ ...base(), holidays: ['2026-11-01'] })).toContain('holidays');
-    expect(fields({ ...base(), holidays: ['2026-10-32'] })).toContain('holidays');
-    expect(fields({ ...base(), holidays: ['2026-10-12'] })).not.toContain('holidays');
-  });
-
   it('checks numeric rule ranges', () => {
     const config = { ...base(), weeklyHours: 0, minRestHours: 49, maxConsecutiveDays: 0, allowOvertime: 'yes', month: 13 };
     expect(fields(config)).toEqual(
@@ -105,6 +98,12 @@ describe('normalizeConfig', () => {
     const normalized = normalizeConfig(legacy);
     expect(normalized.shifts.map((s) => s.maxConsecutive)).toEqual([3, 2]);
     expect(legacy.shifts[0].maxConsecutive).toBeUndefined();
+    expect(validateConfig(normalized).valid).toBe(true);
+  });
+
+  it('drops holidays saved by older versions', () => {
+    const normalized = normalizeConfig({ ...defaultConfig(new Date(2026, 8, 25)), holidays: ['2026-13-40'] });
+    expect(normalized).not.toHaveProperty('holidays');
     expect(validateConfig(normalized).valid).toBe(true);
   });
 

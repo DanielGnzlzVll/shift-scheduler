@@ -113,11 +113,6 @@ export function renderConfigForm(container, initialConfig, onChange) {
         field('Horas semanales máximas', numberInput('weeklyHours', config.weeklyHours, (v) => (config.weeklyHours = v), { min: 1, max: 84, step: 0.5 }), 'weeklyHours'),
         field('Descanso mínimo entre turnos (horas)', numberInput('minRestHours', config.minRestHours, (v) => (config.minRestHours = v), { min: 0, max: 48 }), 'minRestHours'),
         field('Máximo de días seguidos', numberInput('maxConsecutiveDays', config.maxConsecutiveDays, (v) => (config.maxConsecutiveDays = v), { min: 1, max: 31 }), 'maxConsecutiveDays'),
-        field(
-          'Festivos (AAAA-MM-DD, separados por coma)',
-          input('holidays', config.holidays.join(', '), (v) => (config.holidays = v.split(',').map((s) => s.trim()).filter(Boolean))),
-          'holidays',
-        ),
         field('Permitir horas extra para cubrir turnos', overtime, 'allowOvertime', 'field toggle'),
       ),
     );

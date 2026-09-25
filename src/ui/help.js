@@ -12,7 +12,7 @@ export const HELP = {
   requiredWeekday:
     'Cuántas personas deben trabajar este turno cada día de lunes a viernes. Usa 0 si el turno no existe entre semana. Si no hay suficientes personas disponibles, el cupo queda sin cubrir y aparece en las advertencias.',
   requiredWeekend:
-    'Cuántas personas se necesitan en este turno los sábados, domingos y los días marcados como festivos. Usa 0 si el turno no se trabaja esos días.',
+    'Cuántas personas se necesitan en este turno los sábados, domingos y los festivos de Colombia, que se consultan automáticamente al generar. Usa 0 si el turno no se trabaja esos días.',
   maxConsecutive:
     'Máximo de días seguidos que una misma persona puede hacer este turno en particular, por ejemplo no más de 3 noches seguidas. Usa -1 para no poner límite. Se aplica además del máximo general de días seguidos.',
   month: 'Mes para el que se genera el cuadro. De él dependen la cantidad de días, qué días son fin de semana y la meta de horas de cada persona.',
@@ -23,8 +23,6 @@ export const HELP = {
     'Horas mínimas de descanso entre el final de un turno y el inicio del siguiente para la misma persona. Con 12 horas, quien sale a las 07:00 no puede volver a entrar antes de las 19:00.',
   maxConsecutiveDays:
     'Máximo de días seguidos que una persona puede trabajar, sin importar el turno. Al llegar a ese número, necesita al menos un día libre antes de volver a trabajar.',
-  holidays:
-    'Festivos del mes en formato AAAA-MM-DD, separados por coma, por ejemplo 2026-10-12, 2026-11-02. Esos días usan la cantidad de personas de fin de semana y cuentan como fin de semana en el reporte. Solo se aceptan fechas del mes seleccionado.',
   allowOvertime:
     'Activado: si es la única forma de cubrir un turno, se puede asignar a una persona más horas que su meta, y el exceso se ve en el reporte. Desactivado: nadie supera su meta, y los turnos que no se puedan cubrir quedan como advertencia.',
   people:

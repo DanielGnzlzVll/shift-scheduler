@@ -15,6 +15,7 @@ const workbook = (rows) => {
 };
 
 const section = (root, index) => root.querySelectorAll('section')[index];
+const noHolidays = async () => [];
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function uploadFile(input, file) {
@@ -36,7 +37,7 @@ const button = (root, text) => [...root.querySelectorAll('button')].find((b) => 
 describe('renderApp', () => {
   it('renders all sections and disables generation until people are loaded', () => {
     const root = document.createElement('div');
-    renderApp(root, { storage: memoryStorage() });
+    renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     expect(root.querySelector('h1').textContent).toBe('Cuadro de Turnos');
     expect([...root.querySelectorAll('h2')].map((h) => h.textContent)).toEqual([
       '1. Configuración',
@@ -48,11 +49,11 @@ describe('renderApp', () => {
     expect(button(root, 'Descargar Excel').disabled).toBe(true);
   });
 
-  it('loads people and exceptions, generates, and renders grid and report', () => {
+  it('loads people and exceptions, generates, and renders grid and report', async () => {
     document.body.innerHTML = '';
     const root = document.createElement('div');
     document.body.append(root);
-    const app = renderApp(root, { storage: memoryStorage() });
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
 
     app.loadPeople(workbook([['Nombre'], ['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía'], ['Ana']]));
     expect(root.textContent).toContain('5 personas');
@@ -62,7 +63,7 @@ describe('renderApp', () => {
     app.loadExceptions(workbook([['nombre', 'inicio', 'fin'], ['Pedro', 'x', 'y']]));
     expect(root.textContent).toContain('Excepciones, fila 2: Fecha de inicio inválida');
 
-    const result = app.generate(7);
+    const result = await app.generate(7);
     expect(result.seed).toBe(7);
     expect(root.querySelectorAll('table.schedule tbody tr')).toHaveLength(5 + 2);
     expect(root.querySelectorAll('table.report tbody tr')).toHaveLength(5);
@@ -70,9 +71,50 @@ describe('renderApp', () => {
     expect(button(root, 'Regenerar').disabled).toBe(false);
   });
 
+  it('treats the Colombian holidays of the selected month as weekend days', async () => {
+    const root = document.createElement('div');
+    const fetchHolidays = vi.fn(async () => ['2026-10-12']);
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays });
+    root.querySelector('input[name=year]').value = '2026';
+    root.querySelector('input[name=year]').dispatchEvent(new Event('input', { bubbles: true }));
+    root.querySelector('select[name=month]').value = '10';
+    root.querySelector('select[name=month]').dispatchEvent(new Event('change', { bubbles: true }));
+    app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
+    await app.generate(7);
+    expect(fetchHolidays).toHaveBeenCalledWith(2026, 10);
+    expect(root.querySelector('input[name=holidays]')).toBeNull();
+    const headers = [...root.querySelectorAll('table.schedule thead th')];
+    const day12 = headers.findIndex((th) => th.textContent.startsWith('12'));
+    const day13 = headers.findIndex((th) => th.textContent.startsWith('13'));
+    expect(headers[day12].className).toContain('weekend');
+    expect(headers[day13].className).not.toContain('weekend');
+  });
+
+  it('generates without holidays and warns when they cannot be fetched', async () => {
+    const root = document.createElement('div');
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: () => Promise.reject(new Error('offline')) });
+    app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
+    const result = await app.generate(7);
+    expect(result).not.toBeNull();
+    expect(root.textContent).toContain('No se pudieron consultar los festivos de Colombia; el cuadro se generó sin festivos.');
+  });
+
+  it('disables generation while holidays are loading', async () => {
+    const root = document.createElement('div');
+    let resolve;
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: () => new Promise((r) => (resolve = r)) });
+    app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
+    const pending = app.generate(7);
+    expect(button(root, 'Generar').disabled).toBe(true);
+    expect(await app.generate(8)).toBeNull();
+    resolve([]);
+    await pending;
+    expect(button(root, 'Generar').disabled).toBe(false);
+  });
+
   it('never renders empty status parts as literal text', () => {
     const root = document.createElement('div');
-    const app = renderApp(root, { storage: memoryStorage() });
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     app.loadPeople(workbook([['Ana'], ['Luis']]));
     app.loadExceptions(workbook([['nombre', 'inicio', 'fin'], ['Ana', '2026-10-05', '2026-10-06']]));
     expect(root.textContent).not.toContain('null');
@@ -80,7 +122,7 @@ describe('renderApp', () => {
 
   it('shows a file error without losing previous people', () => {
     const root = document.createElement('div');
-    const app = renderApp(root, { storage: memoryStorage() });
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     app.loadPeople(workbook([['Ana'], ['Luis']]));
     app.loadPeople(workbook([['Nombre']]));
     expect(root.textContent).toContain('El archivo no contiene nombres.');
@@ -89,7 +131,7 @@ describe('renderApp', () => {
 
   it('keeps the people summary visible next to a file error', () => {
     const root = document.createElement('div');
-    const app = renderApp(root, { storage: memoryStorage() });
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     app.loadPeople(workbook([['Ana'], ['Luis']]));
     app.loadPeople(workbook([['Nombre']]));
     const status = section(root, 1).querySelector('.status');
@@ -99,7 +141,7 @@ describe('renderApp', () => {
 
   it('keeps the previous exceptions when a new exceptions file cannot be read', () => {
     const root = document.createElement('div');
-    const app = renderApp(root, { storage: memoryStorage() });
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     app.loadPeople(workbook([['Ana'], ['Luis']]));
     app.loadExceptions(workbook([['nombre', 'inicio', 'fin'], ['Ana', '2026-10-05 07:00', '2026-10-06']]));
     app.loadExceptions(new Uint8Array([0x50, 0x4b, 1, 2, 3]).buffer);
@@ -113,7 +155,7 @@ describe('renderApp', () => {
 
   it('shows parsed exception rows and row errors', () => {
     const root = document.createElement('div');
-    const app = renderApp(root, { storage: memoryStorage() });
+    const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     app.loadPeople(workbook([['Ana'], ['Luis']]));
     app.loadExceptions(
       workbook([
@@ -134,7 +176,7 @@ describe('renderApp', () => {
 
   it('resets file inputs so the same file can be uploaded again', async () => {
     const root = document.createElement('div');
-    renderApp(root, { storage: memoryStorage() });
+    renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     const input = section(root, 1).querySelector('input[type=file]');
     const file = { arrayBuffer: async () => workbook([['Ana'], ['Luis']]) };
     const cleared = uploadFile(input, file);
@@ -145,7 +187,7 @@ describe('renderApp', () => {
 
   it('shows a read error when the browser cannot read the file', async () => {
     const root = document.createElement('div');
-    renderApp(root, { storage: memoryStorage() });
+    renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     const file = { arrayBuffer: () => Promise.reject(new Error('denied')) };
     uploadFile(section(root, 1).querySelector('input[type=file]'), file);
     uploadFile(section(root, 2).querySelector('input[type=file]'), file);
@@ -159,7 +201,7 @@ describe('renderApp', () => {
 
   it('labels file pickers and time fields in Spanish without native browser text', async () => {
     const root = document.createElement('div');
-    renderApp(root, { storage: memoryStorage() });
+    renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     const picker = section(root, 1).querySelector('.file-picker');
     expect(picker.querySelector('.file-button').textContent).toBe('Seleccionar archivo');
     expect(picker.querySelector('.file-name').textContent).toBe('Ningún archivo seleccionado');
@@ -173,7 +215,7 @@ describe('renderApp', () => {
 
   it('shows the privacy note and a WhatsApp link for suggestions', () => {
     const root = document.createElement('div');
-    renderApp(root, { storage: memoryStorage() });
+    renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
     expect(root.querySelector('.privacy').textContent).toContain('Nada queda guardado en nuestros servidores');
     const link = root.querySelector('footer a.whatsapp');
     expect(link.textContent).toBe('Escríbeme por WhatsApp');
@@ -196,32 +238,36 @@ describe('renderApp', () => {
 
     const scheduleHtml = (root) => root.querySelector('table.schedule').innerHTML;
 
-    it('keeps the seed out of the UI', () => {
+    it('keeps the seed out of the UI', async () => {
       const root = document.createElement('div');
-      const app = renderApp(root, { storage: memoryStorage() });
+      const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
       app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
       button(root, 'Generar').click();
+      await flush();
       expect(root.querySelector('input[name=seed]')).toBeNull();
       expect(root.textContent).not.toContain('Semilla');
     });
 
-    it('generates reproducibly with the month seed and regenerates with a random one', () => {
+    it('generates reproducibly with the month seed and regenerates with a random one', async () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const root = document.createElement('div');
-      const app = renderApp(root, { storage: memoryStorage() });
+      const app = renderApp(root, { storage: memoryStorage(), fetchHolidays: noHolidays });
       app.loadPeople(workbook([['Ana'], ['Luis'], ['Marta'], ['Pedro'], ['Sofía']]));
       const year = Number(root.querySelector('input[name=year]').value);
       const month = Number(root.querySelector('select[name=month]').value);
-      const expected = app.generate(defaultSeed({ year, month }));
+      const expected = await app.generate(defaultSeed({ year, month }));
 
       button(root, 'Generar').click();
+      await flush();
       const first = scheduleHtml(root);
-      expect(app.generate(defaultSeed({ year, month })).assignments).toEqual(expected.assignments);
+      expect((await app.generate(defaultSeed({ year, month }))).assignments).toEqual(expected.assignments);
 
       button(root, 'Regenerar').click();
+      await flush();
       expect(scheduleHtml(root)).not.toBe(first);
 
       button(root, 'Generar').click();
+      await flush();
       expect(scheduleHtml(root)).toBe(first);
     });
   });

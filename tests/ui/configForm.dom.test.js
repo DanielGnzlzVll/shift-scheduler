@@ -53,22 +53,21 @@ describe('renderConfigForm', () => {
     expect(onChange.mock.calls.at(-1)[0].shifts[2].maxConsecutive).toBe(3);
   });
 
-  it('updates numeric, month, holiday and overtime fields', () => {
+  it('updates numeric, month and overtime fields', () => {
     const container = document.createElement('div');
     const onChange = vi.fn();
     renderConfigForm(container, defaultConfig(new Date(2026, 8, 25)), onChange);
     setValue(container.querySelector('[name="weeklyHours"]'), '40');
     setValue(container.querySelector('[name="month"]'), '11', 'change');
-    setValue(container.querySelector('[name="holidays"]'), '2026-11-02, 2026-11-16');
     const overtime = container.querySelector('[name="allowOvertime"]');
     overtime.checked = false;
     overtime.dispatchEvent(new Event('change', { bubbles: true }));
     expect(onChange.mock.calls.at(-1)[0]).toMatchObject({
       weeklyHours: 40,
       month: 11,
-      holidays: ['2026-11-02', '2026-11-16'],
       allowOvertime: false,
     });
     expect(onChange.mock.calls.at(-1)[1].valid).toBe(true);
+    expect(container.querySelector('[name="holidays"]')).toBeNull();
   });
 });

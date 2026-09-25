@@ -4,6 +4,7 @@ import { randomSeed } from '../core/random.js';
 import { defaultSeed, generateSchedule } from '../core/scheduler.js';
 import { formatDateTime } from '../core/time.js';
 import { buildScheduleWorkbook, scheduleFileName } from '../io/exportSchedule.js';
+import { fetchColombiaHolidays } from '../io/holidays.js';
 import { readExceptions } from '../io/readExceptions.js';
 import { readPeople } from '../io/readPeople.js';
 import { buildExceptionsTemplate, buildPeopleTemplate } from '../io/templates.js';
@@ -19,6 +20,7 @@ import { renderWarnings } from './warnings.js';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 const READ_ERROR = 'No se pudo leer el archivo.';
+const HOLIDAYS_ERROR = 'No se pudieron consultar los festivos de Colombia; el cuadro se generó sin festivos.';
 
 const REPO_URL = 'https://github.com/DanielGnzlzVll/shift-scheduler';
 
@@ -97,7 +99,7 @@ const exceptionsTable = (exceptions) =>
     ),
   );
 
-export function renderApp(root, { storage = globalThis.localStorage } = {}) {
+export function renderApp(root, { storage = globalThis.localStorage, fetchHolidays = fetchColombiaHolidays } = {}) {
   const loaded = loadConfig(storage);
   const state = {
     config: loaded.config,
@@ -109,6 +111,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     exceptionErrors: [],
     result: null,
     context: null,
+    generating: false,
   };
 
   const notice = el('p', { className: 'notice', hidden: !loaded.notice }, loaded.notice ?? '');
@@ -249,7 +252,7 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
   );
 
   function refreshButtons() {
-    const ready = state.configValid && state.people.length > 0;
+    const ready = state.configValid && state.people.length > 0 && !state.generating;
     generateButton.disabled = !ready;
     regenerateButton.disabled = !ready || !state.result;
     downloadButton.disabled = !state.result;
@@ -300,13 +303,27 @@ export function renderApp(root, { storage = globalThis.localStorage } = {}) {
     loadExceptions(buffer) {
       applyExceptions(buffer);
     },
-    generate(seed) {
-      if (!state.configValid || !state.people.length) return null;
-      const context = { config: clone(state.config), people: [...state.people], exceptions: [...state.exceptions] };
+    async generate(seed) {
+      if (!state.configValid || !state.people.length || state.generating) return null;
+      const config = clone(state.config);
+      const people = [...state.people];
+      const exceptions = [...state.exceptions];
+      state.generating = true;
+      refreshButtons();
+      let holidays = [];
+      let holidayWarnings = [];
+      try {
+        holidays = await fetchHolidays(config.year, config.month);
+      } catch {
+        holidayWarnings = [HOLIDAYS_ERROR];
+      } finally {
+        state.generating = false;
+      }
+      const context = { config: { ...config, holidays }, people, exceptions };
       const result = generateSchedule({ ...context, seed });
       state.result = result;
       state.context = context;
-      renderWarnings(warningsBox, [...state.peopleWarnings, ...state.exceptionErrors, ...result.warnings]);
+      renderWarnings(warningsBox, [...holidayWarnings, ...state.peopleWarnings, ...state.exceptionErrors, ...result.warnings]);
       renderScheduleGrid(gridBox, { result, config: context.config, people: context.people, exceptions: context.exceptions });
       renderReportTable(reportBox, result.report, context.config.shifts);
       refreshButtons();

@@ -53,7 +53,6 @@ describe('help buttons', () => {
       'weeklyHours',
       'minRestHours',
       'maxConsecutiveDays',
-      'holidays',
       'allowOvertime',
     ]) {
       expect(helps).toContain(HELP[key]);

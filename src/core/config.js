@@ -1,4 +1,3 @@
-import { daysInMonth } from './calendar.js';
 import { parseHHMM } from './time.js';
 
 export const DEFAULT_MAX_CONSECUTIVE = 3;
@@ -17,7 +16,6 @@ export function defaultConfig(today = new Date()) {
       { id: 's1', name: 'Día', code: 'D', start: '07:00', end: '19:00', requiredWeekday: 2, requiredWeekend: 2, maxConsecutive: UNLIMITED_CONSECUTIVE },
       { id: 's2', name: 'Noche', code: 'N', start: '19:00', end: '07:00', requiredWeekday: 1, requiredWeekend: 1, maxConsecutive: DEFAULT_MAX_CONSECUTIVE },
     ],
-    holidays: [],
     weeklyHours: 42,
     minRestHours: 12,
     maxConsecutiveDays: 6,
@@ -27,8 +25,10 @@ export function defaultConfig(today = new Date()) {
 
 export function normalizeConfig(config) {
   if (!config || typeof config !== 'object' || !Array.isArray(config.shifts)) return config;
+  const rest = { ...config };
+  delete rest.holidays;
   return {
-    ...config,
+    ...rest,
     shifts: config.shifts.map((shift) =>
       shift && typeof shift === 'object' && shift.maxConsecutive === undefined ? { ...shift, maxConsecutive: DEFAULT_MAX_CONSECUTIVE } : shift,
     ),
@@ -74,19 +74,6 @@ export function validateConfig(config) {
       add(`${path}.maxConsecutive`, 'Debe ser -1 (sin límite) o un entero entre 1 y 31');
     }
   });
-
-  const holidays = Array.isArray(config.holidays) ? config.holidays : null;
-  if (!holidays) {
-    add('holidays', 'Lista de festivos inválida');
-  } else if (isInt(config.year, 2000, 2100) && isInt(config.month, 1, 12)) {
-    const prefix = `${config.year}-${String(config.month).padStart(2, '0')}-`;
-    const lastDay = daysInMonth(config.year, config.month);
-    const bad = holidays.filter((h) => {
-      const match = /^(\d{4}-\d{2}-)(\d{2})$/.exec(String(h));
-      return !match || match[1] !== prefix || Number(match[2]) < 1 || Number(match[2]) > lastDay;
-    });
-    if (bad.length) add('holidays', `Festivos fuera del mes seleccionado: ${bad.join(', ')}`);
-  }
 
   if (!isNum(config.weeklyHours, 1, 84)) add('weeklyHours', 'Las horas semanales deben estar entre 1 y 84');
   if (!isNum(config.minRestHours, 0, 48)) add('minRestHours', 'El descanso mínimo debe estar entre 0 y 48 horas');
